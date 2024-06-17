@@ -10,7 +10,6 @@ import java.util.Optional;
 
 @Repository
 public interface StoreRepository extends JpaRepository<StoreEntity, Long> {
-    Optional<StoreEntity> findByStoreName(String storeName);
     List<StoreEntity> findAllByPartnerEntity(PartnerEntity partnerEntity);
     List<StoreEntity> findAllByStoreNameLike(String storeName);
 }
