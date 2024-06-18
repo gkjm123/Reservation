@@ -16,18 +16,13 @@ import com.example.reservation.repository.PartnerRepository;
 import com.example.reservation.repository.ReservationRepository;
 import com.example.reservation.repository.ReviewRepository;
 import com.example.reservation.repository.StoreRepository;
+import com.example.reservation.security.SecurityManager;
 import com.example.reservation.type.ReservationType;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,12 +33,8 @@ public class PartnerService {
     private final StoreRepository storeRepository;
     private final ReviewRepository reviewRepository;
     private final PasswordEncoder passwordEncoder;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final SecurityManager securityManager;
     private final ReservationRepository reservationRepository;
-
-    @Value("${token.key}")
-    private String tokenKey;
-    private static final long TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24;
 
 
     @Transactional
@@ -58,11 +49,11 @@ public class PartnerService {
         //회원가입 폼을 엔티티로 바꾸고 비밀번호는 encoding 해서 엔티티에 넣어준다.
         PartnerEntity partnerEntity = PartnerEntity.fromForm(signUpForm);
         partnerEntity.setPassword(passwordEncoder.encode(signUpForm.getPassword()));
+        partnerEntity.setRole("ROLE_PARTNER");
 
         //엔티티를 Response 객체로 변환하여 반환한다
         return PartnerResponse.fromEntity(partnerRepository.save(partnerEntity));
     }
-
 
     @Transactional
     public String signIn(SignInForm signInForm) {
@@ -71,22 +62,18 @@ public class PartnerService {
                 .orElseThrow(() -> new ServiceException(ErrorCode.ID_PASSWORD_NOT_VALID));
 
         //비밀번호 일치 확인
-        if (!passCheck(signInForm.getPassword(), partnerEntity.getPassword())) {
+        if (!securityManager.passCheck(signInForm.getPassword(), partnerEntity.getPassword())) {
             throw new ServiceException(ErrorCode.ID_PASSWORD_NOT_VALID);
         }
 
-        //생성된 Jwt 토큰 반환
-        return tokenCreate(signInForm.getLoginId());
+        //로그인 아이디와 역할을 넣어 생성된 토큰 반환
+        return securityManager.tokenCreate(signInForm.getLoginId(), partnerEntity.getRole());
     }
 
     @Transactional
     public StoreResponse addStore(String token, StoreForm storeForm) {
-        //토큰을 파싱해서 subject 값인 loginId를 받는다.
-        String loginId = parseToken(token);
-
-        //로그인 아이디로 파트너 엔티티 찾기
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //폼을 엔티티로 변환하고, 파트너 엔티티는 직접 set 해준다.
         StoreEntity storeEntity = StoreEntity.fromForm(storeForm);
@@ -98,10 +85,8 @@ public class PartnerService {
 
     @Transactional
     public List<StoreResponse> getStores(String token) {
-        //토큰으로 파트너 엔티티 찾기
-        String loginId = parseToken(token);
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //파트너가 소유한 모든 상점 엔티티 리스트
         List<StoreEntity> storeEntityList = storeRepository.findAllByPartnerEntity(partnerEntity);
@@ -117,10 +102,8 @@ public class PartnerService {
 
     @Transactional
     public StoreResponse updateStore(String token, Long storeId, StoreForm storeForm) {
-        //토큰으로 파트너 엔티티 찾기
-        String loginId = parseToken(token);
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //상점 아이디로 상점 엔티티 찾기
         StoreEntity storeEntity = storeRepository.findById(storeId)
@@ -144,10 +127,8 @@ public class PartnerService {
 
     @Transactional
     public void deleteStore(String token, Long storeId) {
-        //토큰으로 파트너 엔티티 찾기
-        String loginId = parseToken(token);
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //상점 아이디로 상점 엔티티 찾기
         StoreEntity storeEntity = storeRepository.findById(storeId)
@@ -164,10 +145,8 @@ public class PartnerService {
 
     @Transactional
     public List<ReservationResponse> getReserves(String token, Long storeId) {
-        //토큰으로 파트너 엔티티 찾기
-        String loginId = parseToken(token);
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //상점 아이디로 상점 엔티티 찾기
         StoreEntity storeEntity = storeRepository.findById(storeId)
@@ -192,10 +171,8 @@ public class PartnerService {
 
     @Transactional
     public ReservationResponse confirmReserve(String token, Long reserveId) {
-        //토큰으로 파트너 엔티티 찾기
-        String loginId = parseToken(token);
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //예약 아이디로 예약 엔티티 찾기
         ReservationEntity reservationEntity = reservationRepository.findById(reserveId)
@@ -219,10 +196,8 @@ public class PartnerService {
 
     @Transactional
     public ReservationResponse cancelReserve(String token, Long reserveId) {
-        //토큰으로 파트너 엔티티 찾기
-        String loginId = parseToken(token);
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //예약 아이디로 예약 엔티티 찾기
         ReservationEntity reservationEntity = reservationRepository.findById(reserveId)
@@ -246,10 +221,8 @@ public class PartnerService {
 
     @Transactional
     public void deleteReview(String token, Long reviewId) {
-        //토큰으로 파트너 엔티티 찾기
-        String loginId = parseToken(token);
-        PartnerEntity partnerEntity = partnerRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.PARTNER_NOT_FOUND));
+        //토큰으로 파트너 회원 찾기
+        PartnerEntity partnerEntity = partnerRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //리뷰 아이디로 리뷰 찾기
         ReviewEntity reviewEntity = reviewRepository.findById(reviewId)
@@ -264,28 +237,4 @@ public class PartnerService {
         reviewRepository.delete(reviewEntity);
     }
 
-
-    //로그인시 비밀번호 일치여부 확인
-    public boolean passCheck(String rawPassword, String encodedPassword) {
-        return bCryptPasswordEncoder.matches(rawPassword, encodedPassword);
-    }
-
-    //로그인 성공시 Jwt 토큰 생성해서 반환
-    public String tokenCreate(String loginId) {
-        Claims claims = Jwts.claims().setSubject(loginId);
-
-        Date now = new Date();
-        Date expireDate = new Date(now.getTime() + TOKEN_EXPIRE_TIME);
-
-        return Jwts.builder().setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(expireDate)
-                .signWith(SignatureAlgorithm.HS512, tokenKey)
-                .compact();
-    }
-
-    //로그인 필요한 서비스 접근시 헤더에 토큰 포함해서 보내면, 파싱해서 LoginId(subject) 반환
-    public String parseToken(String token) {
-        return Jwts.parser().setSigningKey(tokenKey).parseClaimsJws(token).getBody().getSubject();
-    }
 }

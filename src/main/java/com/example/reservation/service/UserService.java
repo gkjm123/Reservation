@@ -6,25 +6,20 @@ import com.example.reservation.entity.ReservationEntity;
 import com.example.reservation.entity.ReviewEntity;
 import com.example.reservation.entity.StoreEntity;
 import com.example.reservation.entity.UserEntity;
-import com.example.reservation.exception.ServiceException;
 import com.example.reservation.exception.ErrorCode;
+import com.example.reservation.exception.ServiceException;
 import com.example.reservation.repository.ReservationRepository;
 import com.example.reservation.repository.ReviewRepository;
 import com.example.reservation.repository.StoreRepository;
 import com.example.reservation.repository.UserRepository;
+import com.example.reservation.security.SecurityManager;
 import com.example.reservation.type.ReservationType;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,11 +31,7 @@ public class UserService {
     private final ReservationRepository reservationRepository;
     private final ReviewRepository reviewRepository;
     private final PasswordEncoder passwordEncoder;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
-
-    @Value("${token.key}")
-    private String tokenKey;
-    private static final long TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24;
+    private final SecurityManager securityManager;
 
 
     @Transactional
@@ -54,6 +45,7 @@ public class UserService {
 
         UserEntity userEntity = UserEntity.fromForm(signUpForm);
         userEntity.setPassword(passwordEncoder.encode(signUpForm.getPassword()));
+        userEntity.setRole("ROLE_USER");
 
         return UserResponse.fromEntity(userRepository.save(userEntity));
     }
@@ -64,11 +56,11 @@ public class UserService {
         UserEntity userEntity = userRepository.findByLoginId(signInForm.getLoginId())
                 .orElseThrow(() -> new ServiceException(ErrorCode.ID_PASSWORD_NOT_VALID));
 
-        if (!passCheck(signInForm.getPassword(), userEntity.getPassword())) {
+        if (!securityManager.passCheck(signInForm.getPassword(), userEntity.getPassword())) {
             throw new ServiceException(ErrorCode.ID_PASSWORD_NOT_VALID);
         }
 
-        return tokenCreate(signInForm.getLoginId());
+        return securityManager.tokenCreate(signInForm.getLoginId(), userEntity.getRole());
     }
 
     @Transactional
@@ -102,9 +94,7 @@ public class UserService {
     @Transactional
     public ReservationResponse reserve(String token, ReservationForm reservationForm) {
         //토큰으로 회원 찾기
-        String loginId = parseToken(token);
-        UserEntity userEntity = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.USER_NOT_FOUNT));
+        UserEntity userEntity = userRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //예약 폼에서 상점 아이디 받아와 상점 찾기
         StoreEntity storeEntity = storeRepository.findById(reservationForm.getStoreId())
@@ -164,9 +154,7 @@ public class UserService {
     @Transactional
     public List<ReservationResponse> getReserves(String token) {
         //토큰으로 회원 찾기
-        String loginId = parseToken(token);
-        UserEntity userEntity = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.USER_NOT_FOUNT));
+        UserEntity userEntity = userRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //해당 회원이 예약한 리스트
         List<ReservationEntity> reservationEntities = reservationRepository.findAllByUserEntity(userEntity);
@@ -183,9 +171,7 @@ public class UserService {
     @Transactional
     public void cancelReserve(String token, Long reserveId) {
         //토큰으로 회원 찾기
-        String loginId = parseToken(token);
-        UserEntity userEntity = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.USER_NOT_FOUNT));
+        UserEntity userEntity = userRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //예약 아이디로 예약 찾기
         ReservationEntity reservationEntity = reservationRepository.findById(reserveId)
@@ -209,7 +195,7 @@ public class UserService {
 
     @Transactional
     public void arrive(ArriveForm arriveForm) {
-        //토큰으로 회원 찾기
+        //도착시 작성하는 폼에서 이름과 전화번호 받아서 유저 찾기
         UserEntity userEntity = userRepository.findByNameAndPhone(arriveForm.getUserName(), arriveForm.getUserPhone())
                 .orElseThrow(() -> new ServiceException(ErrorCode.ARRIVE_NOT_ACCEPT));
 
@@ -247,9 +233,7 @@ public class UserService {
     @Transactional
     public ReviewResponse review(String token, ReviewForm reviewForm) {
         //토큰으로 회원 찾기
-        String loginId = parseToken(token);
-        UserEntity userEntity = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.USER_NOT_FOUNT));
+        UserEntity userEntity = userRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //리뷰 폼에 있는 상점 아이디로 상점 찾기
         StoreEntity storeEntity = storeRepository.findById(reviewForm.getStoreId())
@@ -282,9 +266,7 @@ public class UserService {
     @Transactional
     public List<ReviewResponse> getReviews(String token) {
         //토큰으로 회원 찾기
-        String loginId = parseToken(token);
-        UserEntity userEntity = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.USER_NOT_FOUNT));
+        UserEntity userEntity = userRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //회원이 작성한 모든 리뷰 리스트
         List<ReviewEntity> reviewEntityList = reviewRepository.findAllByUserEntity(userEntity);
@@ -301,9 +283,7 @@ public class UserService {
     @Transactional
     public ReviewResponse updateReview(String token, ReviewUpdateForm reviewUpdateForm) {
         //토큰으로 회원 찾기
-        String loginId = parseToken(token);
-        UserEntity userEntity = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.USER_NOT_FOUNT));
+        UserEntity userEntity = userRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //리뷰수정 폼으로 리뷰 아이디와 수정할 내용을 받고, 아이디로 리뷰 찾기
         ReviewEntity reviewEntity = reviewRepository.findById(reviewUpdateForm.getReviewId())
@@ -324,9 +304,7 @@ public class UserService {
     @Transactional
     public void deleteReview(String token, Long reviewId) {
         //토큰으로 회원 찾기
-        String loginId = parseToken(token);
-        UserEntity userEntity = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new ServiceException(ErrorCode.USER_NOT_FOUNT));
+        UserEntity userEntity = userRepository.findByLoginId(securityManager.parseToken(token)).get();
 
         //리뷰 아이디로 리뷰 찾기
         ReviewEntity reviewEntity = reviewRepository.findById(reviewId)
@@ -339,30 +317,5 @@ public class UserService {
 
         //리뷰 삭제
         reviewRepository.delete(reviewEntity);
-    }
-
-
-    //로그인시 비밀번호 일치여부 확인
-    public boolean passCheck(String rawPassword, String encodedPassword) {
-        return bCryptPasswordEncoder.matches(rawPassword, encodedPassword);
-    }
-
-    //로그인 성공시 Jwt 토큰 생성해서 반환
-    public String tokenCreate(String loginId) {
-        Claims claims = Jwts.claims().setSubject(loginId);
-
-        Date now = new Date();
-        Date expireDate = new Date(now.getTime() + TOKEN_EXPIRE_TIME);
-
-        return Jwts.builder().setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(expireDate)
-                .signWith(SignatureAlgorithm.HS512, tokenKey)
-                .compact();
-    }
-
-    //로그인 필요한 서비스 접근시 헤더에 토큰 포함해서 보내면, 파싱해서 LoginId(subject) 반환
-    public String parseToken(String token) {
-        return Jwts.parser().setSigningKey(tokenKey).parseClaimsJws(token).getBody().getSubject();
     }
 }

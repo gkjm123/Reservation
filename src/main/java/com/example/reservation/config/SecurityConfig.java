@@ -3,6 +3,7 @@ package com.example.reservation.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -11,6 +12,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
     @Bean
@@ -20,6 +22,8 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize ->
                         authorize
+                                .requestMatchers(AntPathRequestMatcher.antMatcher("/**/signin")).permitAll()
+                                .requestMatchers(AntPathRequestMatcher.antMatcher("/**/signup")).permitAll()
                                 .requestMatchers(AntPathRequestMatcher.antMatcher("/partner/**")).permitAll()
                                 .requestMatchers(AntPathRequestMatcher.antMatcher("/user/**")).permitAll()
                                 .requestMatchers( "/","/swagger-ui/**", "/v3/api-docs/**").permitAll()
