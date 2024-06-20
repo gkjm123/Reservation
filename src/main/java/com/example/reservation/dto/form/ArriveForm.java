@@ -17,6 +17,6 @@ public class ArriveForm {
     @NotBlank(message = "이름을 입력하세요.")
     private String userName;
 
-    @Pattern(regexp = "010-([0-9])([0-9])([0-9])([0-9])-([0-9])([0-9])([0-9])([0-9])", message = "전화번호를 010-xxxx-xxxx 타입으로 입력하세요.")
+    @Pattern(regexp = "^010-([0-9]{4})-([0-9]{4})$", message = "010-xxxx-xxxx 형식으로 핸드폰 번호를 입력해주세요.")
     private String userPhone;
 }
