@@ -31,7 +31,7 @@ public class StoreEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     private PartnerEntity partnerEntity;
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "storeEntity")
     private List<ReviewEntity> reviewEntityList;
 
     @CreationTimestamp
