@@ -1,13 +1,22 @@
 package com.example.reservation.entity;
 
 import com.example.reservation.dto.form.StoreForm;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Getter
@@ -16,36 +25,37 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StoreEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    private String storeName;
-    private String location;
-    private String description;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private LocalTime startTime;
-    private LocalTime endTime;
-    private Long tablePerTime;
+  private String storeName;
+  private String location;
+  private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    private PartnerEntity partnerEntity;
+  private LocalTime startTime;
+  private LocalTime endTime;
+  private Long tablePerTime;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "storeEntity")
-    private List<ReviewEntity> reviewEntityList;
+  @ManyToOne(fetch = FetchType.LAZY)
+  private PartnerEntity partnerEntity;
 
-    @CreationTimestamp
-    private LocalDateTime createDate;
+  @OneToMany(fetch = FetchType.LAZY, mappedBy = "storeEntity")
+  private List<ReviewEntity> reviewEntityList;
 
-    public static StoreEntity fromForm(StoreForm storeForm) {
-        return StoreEntity.builder()
-                .storeName(storeForm.getStoreName())
-                .location(storeForm.getLocation())
-                .description(storeForm.getDescription())
-                .startTime(storeForm.getStartTime())
-                .endTime(storeForm.getEndTime())
-                .tablePerTime(storeForm.getTablePerTime())
-                .build();
-    }
+  @CreationTimestamp
+  private LocalDateTime createDate;
+
+  public static StoreEntity fromForm(StoreForm storeForm) {
+    return StoreEntity.builder()
+        .storeName(storeForm.getStoreName())
+        .location(storeForm.getLocation())
+        .description(storeForm.getDescription())
+        .startTime(storeForm.getStartTime())
+        .endTime(storeForm.getEndTime())
+        .tablePerTime(storeForm.getTablePerTime())
+        .build();
+  }
 
 }

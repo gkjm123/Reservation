@@ -9,16 +9,16 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class ExceptionController {
 
-    @ExceptionHandler(ServiceException.class)
-    public ResponseEntity<String> serviceExceptionHandler(final ServiceException e) {
-        log.warn("Service Exception: {}", e.getMessage());
-        return ResponseEntity.badRequest().body(e.getMessage());
-    }
+  @ExceptionHandler(ServiceException.class)
+  public ResponseEntity<String> serviceExceptionHandler(final ServiceException e) {
+    log.warn("Service Exception: {}", e.getMessage());
+    return ResponseEntity.badRequest().body(e.getMessage());
+  }
 
-    @ExceptionHandler(FormException.class)
-    public ResponseEntity<String> formExceptionHandler(final FormException e) {
-        log.warn("Form Exception: {}", e.getMessage());
-        return ResponseEntity.badRequest().body(e.getMessage());
-    }
+  @ExceptionHandler(FormException.class)
+  public ResponseEntity<String> formExceptionHandler(final FormException e) {
+    log.warn("Form Exception: {}", e.getMessage());
+    return ResponseEntity.badRequest().body(e.getMessage());
+  }
 
 }

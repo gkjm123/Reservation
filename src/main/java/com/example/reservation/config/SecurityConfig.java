@@ -15,21 +15,22 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @EnableMethodSecurity(securedEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(authorize ->
-                        authorize
-                                .requestMatchers(AntPathRequestMatcher.antMatcher("/**/signin")).permitAll()
-                                .requestMatchers(AntPathRequestMatcher.antMatcher("/**/signup")).permitAll()
-                                .requestMatchers(AntPathRequestMatcher.antMatcher("/partner/**")).permitAll()
-                                .requestMatchers(AntPathRequestMatcher.antMatcher("/user/**")).permitAll()
-                                .requestMatchers( "/","/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                                .anyRequest().authenticated()
-                );
 
-        return http.build();
-    }
+  @Bean
+  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(AbstractHttpConfigurer::disable)
+        .formLogin(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(authorize ->
+            authorize
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/**/signin")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/**/signup")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/partner/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/user/**")).permitAll()
+                .requestMatchers("/", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated()
+        );
+
+    return http.build();
+  }
 }
