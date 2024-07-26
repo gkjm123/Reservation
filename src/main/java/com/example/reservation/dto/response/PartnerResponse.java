@@ -1,9 +1,12 @@
 package com.example.reservation.dto.response;
 
 import com.example.reservation.entity.PartnerEntity;
-import lombok.*;
-
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter

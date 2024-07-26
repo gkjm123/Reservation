@@ -1,16 +1,22 @@
 package com.example.reservation.entity;
 
 import com.example.reservation.dto.form.SignUpForm;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
 
 @Entity
 @Getter
@@ -19,38 +25,39 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserEntity implements UserDetails {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    private String loginId;
-    private String password;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private String name;
-    private String phone;
-    private String email;
+  private String loginId;
+  private String password;
 
-    private String role;
+  private String name;
+  private String phone;
+  private String email;
 
-    @CreationTimestamp
-    private LocalDateTime signupDate;
+  private String role;
 
-    public static UserEntity fromForm(SignUpForm form) {
-        return UserEntity.builder()
-                .loginId(form.getLoginId())
-                .name(form.getName())
-                .phone(form.getPhone())
-                .email(form.getEmail())
-                .build();
-    }
+  @CreationTimestamp
+  private LocalDateTime signupDate;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role));
-    }
+  public static UserEntity fromForm(SignUpForm form) {
+    return UserEntity.builder()
+        .loginId(form.getLoginId())
+        .name(form.getName())
+        .phone(form.getPhone())
+        .email(form.getEmail())
+        .build();
+  }
 
-    @Override
-    public String getUsername() {
-        return "";
-    }
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    return List.of(new SimpleGrantedAuthority(role));
+  }
+
+  @Override
+  public String getUsername() {
+    return "";
+  }
 }
